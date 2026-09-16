@@ -272,6 +272,30 @@ TEST(ConversionsTest, CustomCenter_RoundtripAndClamping) {
   }
 }
 
+// ---- decode_servo_error ----
+
+TEST(ConversionsTest, DecodeServoError_Zero_IsOk) {
+  EXPECT_EQ(decode_servo_error(0), "OK");
+}
+
+TEST(ConversionsTest, DecodeServoError_SingleBits) {
+  EXPECT_EQ(decode_servo_error(1 << 0), "voltage error");
+  EXPECT_EQ(decode_servo_error(1 << 2), "overheat error");
+  EXPECT_EQ(decode_servo_error(1 << 5), "overload error");
+}
+
+TEST(ConversionsTest, DecodeServoError_MultipleBits) {
+  EXPECT_EQ(decode_servo_error((1 << 0) | (1 << 2)), "voltage error, overheat error");
+  EXPECT_EQ(decode_servo_error((1 << 0) | (1 << 2) | (1 << 5)),
+    "voltage error, overheat error, overload error");
+}
+
+TEST(ConversionsTest, DecodeServoError_UnknownBit_Surfaced) {
+  // Bit 1 is reserved/undocumented on STS-series servos - must not be silently dropped.
+  EXPECT_EQ(decode_servo_error(1 << 1), "unknown bits 0x02");
+  EXPECT_EQ(decode_servo_error((1 << 0) | (1 << 1)), "voltage error, unknown bits 0x02");
+}
+
 int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);

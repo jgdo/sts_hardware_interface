@@ -12,6 +12,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
+#include <cstdio>
+#include <string>
 
 namespace sts_hardware_interface
 {
@@ -134,6 +137,43 @@ template<typename T>
 inline T apply_limit(T value, T min_val, T max_val, bool has_limit)
 {
   return has_limit ? std::clamp(value, min_val, max_val) : value;
+}
+
+/**
+ * @brief Decode the STS/SCS servo status byte (SCSerial::Error, as set by getErr()) into a
+ * human-readable fault summary.
+ *
+ * Per the Feetech SMS/STS servo memory table, only bits 0, 2, and 5 are defined; all other
+ * bits are reserved and always 0 on STS-series servos.
+ *   Bit 0: Voltage error   (supply voltage outside the servo's configured min/max range)
+ *   Bit 2: Overheat error  (internal temperature exceeds the configured max temperature)
+ *   Bit 5: Overload error  (load exceeded overload_torque for longer than the overload time)
+ *
+ * @return "OK" if error_byte == 0, otherwise a comma-separated list of active faults.
+ */
+inline std::string decode_servo_error(uint8_t error_byte)
+{
+  if (error_byte == 0) return "OK";
+
+  std::string result;
+  auto append_fault = [&](const char * name) {
+    if (!result.empty()) result += ", ";
+    result += name;
+  };
+  if (error_byte & (1 << 0)) append_fault("voltage error");
+  if (error_byte & (1 << 2)) append_fault("overheat error");
+  if (error_byte & (1 << 5)) append_fault("overload error");
+
+  // Any remaining set bits are reserved/undocumented on STS-series servos; surface them
+  // rather than silently dropping the information.
+  constexpr uint8_t known_mask = (1 << 0) | (1 << 2) | (1 << 5);
+  if (uint8_t unknown_bits = error_byte & ~known_mask; unknown_bits != 0) {
+    char buf[24];
+    std::snprintf(buf, sizeof(buf), "unknown bits 0x%02x", unknown_bits);
+    append_fault(buf);
+  }
+
+  return result;
 }
 
 }  // namespace conversions

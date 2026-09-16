@@ -718,8 +718,9 @@ hardware_interface::CallbackReturn STSHardwareInterface::on_configure(
       }
     }
     if (!responded) {
-      RCLCPP_ERROR(logger_, "Failed to ping motor %d (joint '%s') after %d attempts - servo error: %d",
-        motor_ids_[i], joint_names_[i].c_str(), configure_ping_retry_attempts_, servo_error);
+      RCLCPP_ERROR(logger_, "Failed to ping motor %d (joint '%s') after %d attempts - servo error: %s",
+        motor_ids_[i], joint_names_[i].c_str(), configure_ping_retry_attempts_,
+        conversions::decode_servo_error(static_cast<uint8_t>(servo_error)).c_str());
       return hardware_interface::CallbackReturn::ERROR;
     }
     RCLCPP_INFO(logger_, "Motor %d (joint '%s') responded to ping",
@@ -1714,9 +1715,10 @@ Result STSHardwareInterface::check_write(int result, size_t idx, const char* ope
     RCLCPP_WARN_THROTTLE(
       logger_,
       throttle_clock_, 1000,
-      "Failed to write %s to motor %d (joint '%s') - error count: %d/%d, servo error: %d",
+      "Failed to write %s to motor %d (joint '%s') - error count: %d/%d, servo error: %s",
       operation, motor_ids_[idx], joint_names_[idx].c_str(),
-      consecutive_write_errors_, MAX_CONSECUTIVE_ERRORS, servo_error);
+      consecutive_write_errors_, MAX_CONSECUTIVE_ERRORS,
+      conversions::decode_servo_error(static_cast<uint8_t>(servo_error)).c_str());
 
     if (consecutive_write_errors_ >= MAX_CONSECUTIVE_ERRORS) {
       RCLCPP_ERROR(logger_,

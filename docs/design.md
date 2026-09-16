@@ -393,6 +393,10 @@ The hardware interface automatically recovers from communication failures:
 **Recovery Trigger:**
 - Activates after 5 consecutive read or write errors
 - Error messages identify the specific failing motor by ID and joint name for easier diagnostics
+- The servo's status byte is decoded into named faults (`voltage error`, `overheat error`,
+  `overload error`, or `OK`) via `conversions::decode_servo_error()` instead of logging a raw
+  integer — see `sts_conversions.hpp`. This is log-output only; it does not change the 5-error
+  recovery threshold above.
 
 **Recovery Process:**
 1. Close serial port
@@ -591,7 +595,7 @@ See [config/mixed_mode.urdf.xacro](../config/mixed_mode.urdf.xacro):
 | **Communication errors** | Controller update rate too high; too many motors on bus; cable quality issues | Decrease controller `update_rate`; enable `use_sync_write: true`; reduce number of state interfaces; test with single motor first |
 | **SyncWrite silently sends nothing** | Motor count on one bus exceeds SyncWrite's packet-length ceiling (255 bytes → 31 motors at 7 bytes/motor) | Split motors across multiple `serial_port`s/controllers, or disable `use_sync_write` for that group |
 | **Emergency stop stuck** | Emergency stop not released; hardware error state | Call `/emergency_stop` service with `data: false`; restart controller_manager; check motor error states |
-| **Consecutive errors** | Loose connections; power supply issues; motor firmware errors | Check serial cable connections; verify motor power supply (6-12V); monitor error recovery attempts |
+| **Consecutive errors** | Loose connections; power supply issues; motor firmware errors | Check serial cable connections; verify motor power supply (6-12V); monitor error recovery attempts — the log line now names the fault (e.g. `overheat error`, `voltage error`, `overload error`) instead of a raw error code, decoded via `conversions::decode_servo_error()` |
 
 ---
 
@@ -620,7 +624,7 @@ test/
 
 ### Unit Tests: `test_conversions.cpp`
 
-**29 tests** covering all unit conversion functions in isolation.
+**33 tests** covering all unit conversion functions in isolation.
 
 **What is tested:**
 - `steps_to_radians` and `radians_to_steps` — forward and inverse conversions, boundary values (0, full-range), mid-range linearity
@@ -628,6 +632,8 @@ test/
 - `raw_load_to_effort` — load normalization from ±1000 protocol units to ±1.0
 - `raw_voltage_to_volts`, `raw_current_to_amperes`, `raw_temperature_to_celsius` — sensor state conversions
 - `clamp_velocity_steps`, `clamp_acceleration`, `clamp_effort` — limit enforcement edge cases
+- `decode_servo_error` — status-byte-to-fault-string decoding: zero byte → `OK`, each documented
+  bit individually and combined, and undocumented bits surfaced as `unknown bits 0xNN`
 - Rounding and floating-point precision across all conversions
 
 **Key design:** No ROS headers are included. Tests compile and run with a plain C++ test binary, so they are fast, deterministic, and require no ROS 2 environment.
