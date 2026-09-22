@@ -899,6 +899,9 @@ hardware_interface::CallbackReturn STSHardwareInterface::on_activate(
     }
     RCLCPP_INFO(logger_, "All motors activated and ready - odometry initialized to zero (position and velocity)");
   } else {
+    read(rclcpp::Time{}, rclcpp::Duration::from_seconds(0));
+    hw_cmd_position_ = hw_state_position_;
+
     RCLCPP_INFO(logger_, "All motors activated and ready - state reset disabled, preserving existing odometry");
   }
 
