@@ -29,10 +29,10 @@ namespace {
 
 /** @brief Parse URDF parameters and validate configuration */
 hardware_interface::CallbackReturn STSHardwareInterface::on_init(
-  const hardware_interface::HardwareInfo & hardware_info)
+  const hardware_interface::HardwareComponentInterfaceParams & params)
 {
   // Store hardware info
-  info_ = hardware_info;
+  info_ = params.hardware_info;
 
   // Initialize logger
   logger_ = rclcpp::get_logger("STSHardwareInterface");
@@ -609,6 +609,14 @@ hardware_interface::CallbackReturn STSHardwareInterface::on_init(
     enable_mock_mode_ ? "true" : "false");
 
   return hardware_interface::CallbackReturn::SUCCESS;
+}
+
+hardware_interface::CallbackReturn STSHardwareInterface::on_init(
+  const hardware_interface::HardwareInfo & hardware_info)
+{
+  hardware_interface::HardwareComponentInterfaceParams params;
+  params.hardware_info = hardware_info;
+  return on_init(params);
 }
 
 /** @brief Initialize serial communication and verify motors */

@@ -12,6 +12,7 @@
 #include "hardware_interface/system_interface.hpp"
 #include "hardware_interface/handle.hpp"
 #include "hardware_interface/hardware_info.hpp"
+#include "hardware_interface/types/hardware_component_interface_params.hpp"
 #include "hardware_interface/types/hardware_interface_return_values.hpp"
 #include "rclcpp/macros.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -141,7 +142,11 @@ public:
 
   /** @brief Parse URDF parameters and validate configuration */
   hardware_interface::CallbackReturn on_init(
-    const hardware_interface::HardwareInfo & hardware_info) override;
+    const hardware_interface::HardwareComponentInterfaceParams & params) override;
+
+  /** @brief Compatibility overload for direct callers using HardwareInfo */
+  hardware_interface::CallbackReturn on_init(
+    const hardware_interface::HardwareInfo & hardware_info);
 
   /** @brief Initialize serial communication and verify motors */
   hardware_interface::CallbackReturn on_configure(
